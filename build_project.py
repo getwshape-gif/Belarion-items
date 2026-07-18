@@ -104,6 +104,100 @@ permissions:
     default: true
 """)
 
+add("src/main/resources/CustomItems.yml", """# ========================================================
+# CustomItems.yml - Materiaux + Damage Values (textures resource pack 1.8)
+# ========================================================
+# Chaque entree associe l'identifiant interne d'un custom item (le meme
+# qui est stocke en NBT et utilise par /citem give) a un Material vanilla
+# reel + une Damage Value (durability) unique. Ces valeurs servent
+# d'identifiant pour qu'un resource pack Minecraft 1.8 affiche un modele
+# 3D distinct pour chaque item (technique CustomModelData "pre-1.13").
+#
+# Vous pouvez modifier les valeurs ici sans recompiler le plugin : au
+# prochain demarrage (ou /citem reload si disponible), les nouveaux
+# identifiants seront utilises pour construire les items.
+
+EMERALD_HAMMER:
+  material: DIAMOND_PICKAXE
+  durability: 1001
+
+REINFORCED_EMERALD_HAMMER:
+  material: DIAMOND_PICKAXE
+  durability: 1002
+
+EMERALD_PICKAXE:
+  material: DIAMOND_PICKAXE
+  durability: 1003
+
+REINFORCED_EMERALD_PICKAXE:
+  material: DIAMOND_PICKAXE
+  durability: 1004
+
+EMERALD_SHOVEL:
+  material: DIAMOND_SPADE
+  durability: 1005
+
+REINFORCED_EMERALD_SHOVEL:
+  material: DIAMOND_SPADE
+  durability: 1006
+
+EMERALD_HOE:
+  material: DIAMOND_HOE
+  durability: 1007
+
+REINFORCED_EMERALD_HOE:
+  material: DIAMOND_HOE
+  durability: 1008
+
+EMERALD_AXE:
+  material: DIAMOND_AXE
+  durability: 1009
+
+REINFORCED_EMERALD_AXE:
+  material: DIAMOND_AXE
+  durability: 1010
+
+EMERALD_SWORD:
+  material: DIAMOND_SWORD
+  durability: 1011
+
+REINFORCED_EMERALD_SWORD:
+  material: DIAMOND_SWORD
+  durability: 1012
+
+EMERALD_HELMET:
+  material: DIAMOND_HELMET
+  durability: 1013
+
+REINFORCED_EMERALD_HELMET:
+  material: DIAMOND_HELMET
+  durability: 1014
+
+EMERALD_CHESTPLATE:
+  material: DIAMOND_CHESTPLATE
+  durability: 1015
+
+REINFORCED_EMERALD_CHESTPLATE:
+  material: DIAMOND_CHESTPLATE
+  durability: 1016
+
+EMERALD_LEGGINGS:
+  material: DIAMOND_LEGGINGS
+  durability: 1017
+
+REINFORCED_EMERALD_LEGGINGS:
+  material: DIAMOND_LEGGINGS
+  durability: 1018
+
+EMERALD_BOOTS:
+  material: DIAMOND_BOOTS
+  durability: 1019
+
+REINFORCED_EMERALD_BOOTS:
+  material: DIAMOND_BOOTS
+  durability: 1020
+""")
+
 add("src/main/resources/config.yml", """# ========================================================
 # Configuration - CustomItems
 # ========================================================
@@ -134,6 +228,108 @@ protection.check-enabled: true
 # Active les logs de debug dans la console
 debug: false
 """)
+add("src/main/java/fr/faction/customitems/config/ItemTexture.java", """package fr.faction.customitems.config;
+
+import org.bukkit.Material;
+
+/**
+ * Association Material + Damage Value (durability) utilisee comme
+ * identifiant de texture par un resource pack Minecraft 1.8 (technique
+ * standard pre-1.13 : l'API Bukkit 1.8 ne propose pas de CustomModelData,
+ * donc chaque modele 3D distinct est associe a une valeur de "damage"
+ * unique sur un materiau vanilla existant).
+ */
+public class ItemTexture {
+
+    private final Material material;
+    private final short durability;
+
+    public ItemTexture(Material material, short durability) {
+        this.material = material;
+        this.durability = durability;
+    }
+
+    public Material getMaterial() {
+        return material;
+    }
+
+    public short getDurability() {
+        return durability;
+    }
+}
+""")
+
+add("src/main/java/fr/faction/customitems/config/ItemTextureRegistry.java", """package fr.faction.customitems.config;
+
+import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Charge CustomItems.yml : associe a chaque identifiant interne de custom
+ * item (le meme ID que celui stocke en NBT, ex: "EMERALD_HAMMER") un
+ * Material vanilla + une Damage Value uniques.
+ *
+ * Le fichier est copie dans le dossier de donnees du plugin au premier
+ * demarrage (saveResource) afin d'etre modifiable sans recompiler le
+ * plugin, conformement au cahier des charges ("Les IDs doivent etre
+ * facilement modifiables sans modifier le code Java").
+ */
+public class ItemTextureRegistry {
+
+    private final Plugin plugin;
+    private final Map<String, ItemTexture> textures = new HashMap<>();
+
+    public ItemTextureRegistry(Plugin plugin) {
+        this.plugin = plugin;
+    }
+
+    public void load() {
+        textures.clear();
+
+        File file = new File(plugin.getDataFolder(), "CustomItems.yml");
+        if (!file.exists()) {
+            plugin.saveResource("CustomItems.yml", false);
+        }
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        for (String key : config.getKeys(false)) {
+            ConfigurationSection section = config.getConfigurationSection(key);
+            if (section == null) {
+                continue;
+            }
+            String materialName = section.getString("material");
+            int durability = section.getInt("durability", 0);
+            if (materialName == null) {
+                plugin.getLogger().warning("[CustomItems.yml] Entree '" + key + "' invalide : materiau manquant.");
+                continue;
+            }
+            Material material = Material.matchMaterial(materialName);
+            if (material == null) {
+                plugin.getLogger().warning("[CustomItems.yml] Materiau inconnu pour '" + key + "' : " + materialName);
+                continue;
+            }
+            textures.put(key.toUpperCase(Locale.ROOT), new ItemTexture(material, (short) durability));
+        }
+    }
+
+    public Optional<ItemTexture> get(String id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(textures.get(id.toUpperCase(Locale.ROOT)));
+    }
+}
+""")
+
 add("src/main/java/fr/faction/customitems/api/CustomItem.java", """package fr.faction.customitems.api;
 
 import org.bukkit.inventory.ItemStack;
@@ -460,7 +656,12 @@ public class ItemBuilder {
     private int amount = 1;
     private short durability = 0;
     private String displayName;
-    private final List<String> lore = new ArrayList<>();
+    /**
+     * Chaque "section" devient un groupe de 1+ lignes de lore. Le build()
+     * separe automatiquement chaque section par une ligne vide, pour un
+     * rendu premium "espace" plutot qu'un bloc de texte compact.
+     */
+    private final List<List<String>> loreSections = new ArrayList<>();
     private boolean unbreakable = false;
     private String customId;
     private final List<EnchantEntry> enchants = new ArrayList<>();
@@ -487,13 +688,14 @@ public class ItemBuilder {
 
     /**
      * Definit le nom affiche a partir du "nom simple" de l'item (ex: "Hammer").
-     * Applique automatiquement le format impose :
-     *   &e[ETOILE] &7<nom> en &a/&2<tier>
+     * Format impose : &e[ETOILE] &7<nom> en &aEmeraude [&2Renforce]
      */
     public ItemBuilder emeraldName(String itemName, boolean reinforced) {
-        String tierColor = reinforced ? "&2" : "&a";
-        String tierWord = reinforced ? "emeraude renforcee" : "emeraude";
-        this.displayName = ColorUtil.c("&e" + STAR + " &7" + itemName + " en " + tierColor + tierWord);
+        StringBuilder name = new StringBuilder("&e").append(STAR).append(" &7").append(itemName).append(" en &aEmeraude");
+        if (reinforced) {
+            name.append(" &2Renforce");
+        }
+        this.displayName = ColorUtil.c(name.toString());
         return this;
     }
 
@@ -502,22 +704,37 @@ public class ItemBuilder {
         return this;
     }
 
+    private List<String> newSection() {
+        List<String> section = new ArrayList<>();
+        loreSections.add(section);
+        return section;
+    }
+
+    /** Ajoute une ligne isolee (sa propre section, entouree de lignes vides). */
     public ItemBuilder loreLine(String line) {
-        this.lore.add(ColorUtil.c(line));
+        newSection().add(ColorUtil.c(line));
         return this;
     }
 
-    public ItemBuilder blankLine() {
-        this.lore.add("");
+    /** Ajoute plusieurs lignes regroupees dans une meme section (pas de ligne vide entre elles). */
+    public ItemBuilder loreLines(String... lines) {
+        List<String> section = newSection();
+        for (String line : lines) {
+            section.add(ColorUtil.c(line));
+        }
         return this;
     }
 
-    /** Ajoute la ligne de progression standard, ex: "&aEmeraude > &bDiamant". */
+    /**
+     * Ajoute la ligne de progression standard :
+     *   Emeraude    : &aEmeraude &7> &bDiamant
+     *   Renforce    : &aEmeraude &2Renforce &7> &aEmeraude
+     */
     public ItemBuilder progression(boolean reinforced) {
         if (reinforced) {
-            loreLine("&2Emeraude renforcee > &aEmeraude");
+            loreLine("&aEmeraude &2Renforce &7> &aEmeraude");
         } else {
-            loreLine("&aEmeraude > &bDiamant");
+            loreLine("&aEmeraude &7> &bDiamant");
         }
         return this;
     }
@@ -554,8 +771,17 @@ public class ItemBuilder {
             meta.setDisplayName(displayName);
         }
 
+        List<String> finalLore = new ArrayList<>();
+        for (List<String> section : loreSections) {
+            if (!finalLore.isEmpty()) {
+                finalLore.add("");
+            }
+            finalLore.addAll(section);
+        }
+        if (!finalLore.isEmpty()) {
+            finalLore.add("");
+        }
         // Ligne finale obligatoire imposee par le cahier des charges
-        List<String> finalLore = new ArrayList<>(lore);
         finalLore.add(ColorUtil.c("&aCustom enchants autorises"));
         meta.setLore(finalLore);
 
@@ -604,6 +830,8 @@ import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.MiningTool;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -612,9 +840,11 @@ public class EmeraldHammer implements CustomItem, MiningTool, ExtraDurability {
 
     public static final String ID = "EMERALD_HAMMER";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldHammer(FileConfiguration config) {
+    public EmeraldHammer(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("hammer.emerald.radius", 1);
+        this.textures = textures;
     }
 
     @Override
@@ -639,7 +869,9 @@ public class EmeraldHammer implements CustomItem, MiningTool, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_PICKAXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_PICKAXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Hammer", false)
                 .progression(false)
                 .loreLine("&7Mine les blocs en zone &a3x3&7.")
@@ -654,6 +886,8 @@ add("src/main/java/fr/faction/customitems/items/tools/ReinforcedEmeraldHammer.ja
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.MiningTool;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -662,9 +896,11 @@ public class ReinforcedEmeraldHammer implements CustomItem, MiningTool {
 
     public static final String ID = "REINFORCED_EMERALD_HAMMER";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public ReinforcedEmeraldHammer(FileConfiguration config) {
+    public ReinforcedEmeraldHammer(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("hammer.reinforced.radius", 2);
+        this.textures = textures;
     }
 
     @Override
@@ -684,7 +920,9 @@ public class ReinforcedEmeraldHammer implements CustomItem, MiningTool {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_PICKAXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_PICKAXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Hammer", true)
                 .progression(true)
                 .loreLine("&7Mine les blocs en zone &a5x5&7.")
@@ -701,6 +939,8 @@ import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.ReplantingHoe;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -709,9 +949,11 @@ public class EmeraldHoe implements CustomItem, ReplantingHoe, ExtraDurability {
 
     public static final String ID = "EMERALD_HOE";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldHoe(FileConfiguration config) {
+    public EmeraldHoe(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("hoe.emerald.radius", 0);
+        this.textures = textures;
     }
 
     @Override
@@ -736,7 +978,9 @@ public class EmeraldHoe implements CustomItem, ReplantingHoe, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_HOE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_HOE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Houe", false)
                 .progression(false)
                 .loreLine("&7Recolte et replante automatiquement.")
@@ -751,6 +995,8 @@ add("src/main/java/fr/faction/customitems/items/tools/ReinforcedEmeraldHoe.java"
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.ReplantingHoe;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -759,9 +1005,11 @@ public class ReinforcedEmeraldHoe implements CustomItem, ReplantingHoe {
 
     public static final String ID = "REINFORCED_EMERALD_HOE";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public ReinforcedEmeraldHoe(FileConfiguration config) {
+    public ReinforcedEmeraldHoe(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("hoe.reinforced.radius", 1);
+        this.textures = textures;
     }
 
     @Override
@@ -781,7 +1029,9 @@ public class ReinforcedEmeraldHoe implements CustomItem, ReplantingHoe {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_HOE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_HOE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Houe", true)
                 .progression(true)
                 .loreLine("&7Recolte en zone &a3x3&7.")
@@ -797,6 +1047,8 @@ add("src/main/java/fr/faction/customitems/items/tools/EmeraldPickaxe.java", """p
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -809,6 +1061,11 @@ import org.bukkit.inventory.ItemStack;
 public class EmeraldPickaxe implements CustomItem, ExtraDurability {
 
     public static final String ID = "EMERALD_PICKAXE";
+    private final ItemTextureRegistry textures;
+
+    public EmeraldPickaxe(ItemTextureRegistry textures) {
+        this.textures = textures;
+    }
 
     @Override
     public String getId() {
@@ -827,7 +1084,9 @@ public class EmeraldPickaxe implements CustomItem, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_PICKAXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_PICKAXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Pioche", false)
                 .progression(false)
                 .loreLine("&7Minage ameliore.")
@@ -842,6 +1101,8 @@ add("src/main/java/fr/faction/customitems/items/tools/ReinforcedEmeraldPickaxe.j
 
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
@@ -862,6 +1123,11 @@ import org.bukkit.inventory.ItemStack;
 public class ReinforcedEmeraldPickaxe implements CustomItem {
 
     public static final String ID = "REINFORCED_EMERALD_PICKAXE";
+    private final ItemTextureRegistry textures;
+
+    public ReinforcedEmeraldPickaxe(ItemTextureRegistry textures) {
+        this.textures = textures;
+    }
 
     @Override
     public String getId() {
@@ -875,11 +1141,12 @@ public class ReinforcedEmeraldPickaxe implements CustomItem {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_PICKAXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_PICKAXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Pioche", true)
                 .progression(true)
-                .loreLine("&7Minage ultra rapide.")
-                .loreLine("&7Maitrise les blocs resistants.")
+                .loreLines("&7Minage ultra rapide.", "&7Maitrise les blocs resistants.")
                 .unbreakableTag()
                 .enchant(Enchantment.DIG_SPEED, 2)
                 .unbreakable(true)
@@ -895,6 +1162,8 @@ import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.MiningTool;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -903,9 +1172,11 @@ public class EmeraldShovel implements CustomItem, MiningTool, ExtraDurability {
 
     public static final String ID = "EMERALD_SHOVEL";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldShovel(FileConfiguration config) {
+    public EmeraldShovel(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("shovel.emerald.radius", 1);
+        this.textures = textures;
     }
 
     @Override
@@ -930,7 +1201,9 @@ public class EmeraldShovel implements CustomItem, MiningTool, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_SPADE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_SPADE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Pelle", false)
                 .progression(false)
                 .loreLine("&7Mine les blocs en zone &a3x3&7.")
@@ -945,6 +1218,8 @@ add("src/main/java/fr/faction/customitems/items/tools/ReinforcedEmeraldShovel.ja
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.MiningTool;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -953,9 +1228,11 @@ public class ReinforcedEmeraldShovel implements CustomItem, MiningTool {
 
     public static final String ID = "REINFORCED_EMERALD_SHOVEL";
     private final int radius;
+    private final ItemTextureRegistry textures;
 
-    public ReinforcedEmeraldShovel(FileConfiguration config) {
+    public ReinforcedEmeraldShovel(FileConfiguration config, ItemTextureRegistry textures) {
         this.radius = config.getInt("shovel.reinforced.radius", 2);
+        this.textures = textures;
     }
 
     @Override
@@ -975,7 +1252,9 @@ public class ReinforcedEmeraldShovel implements CustomItem, MiningTool {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_SPADE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_SPADE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Pelle", true)
                 .progression(true)
                 .loreLine("&7Mine les blocs en zone &a5x5&7.")
@@ -993,6 +1272,8 @@ import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.MiningTool;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -1006,9 +1287,11 @@ public class EmeraldAxe implements CustomItem, MiningTool, ExtraDurability {
 
     public static final String ID = "EMERALD_AXE";
     private final int columnLength;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldAxe(FileConfiguration config) {
+    public EmeraldAxe(FileConfiguration config, ItemTextureRegistry textures) {
         this.columnLength = config.getInt("axe.emerald.length", 3);
+        this.textures = textures;
     }
 
     @Override
@@ -1033,7 +1316,9 @@ public class EmeraldAxe implements CustomItem, MiningTool, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_AXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_AXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Hache", false)
                 .progression(false)
                 .loreLine("&7Coupe le bois en zone &a1x3&7.")
@@ -1048,6 +1333,8 @@ add("src/main/java/fr/faction/customitems/items/tools/ReinforcedEmeraldAxe.java"
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.TreeFeller;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -1058,6 +1345,11 @@ import org.bukkit.inventory.ItemStack;
 public class ReinforcedEmeraldAxe implements CustomItem, TreeFeller {
 
     public static final String ID = "REINFORCED_EMERALD_AXE";
+    private final ItemTextureRegistry textures;
+
+    public ReinforcedEmeraldAxe(ItemTextureRegistry textures) {
+        this.textures = textures;
+    }
 
     @Override
     public String getId() {
@@ -1071,7 +1363,9 @@ public class ReinforcedEmeraldAxe implements CustomItem, TreeFeller {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_AXE)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_AXE, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Hache", true)
                 .progression(true)
                 .loreLine("&7Coupe les arbres entierement.")
@@ -1088,6 +1382,8 @@ import fr.faction.customitems.api.ArmorBonus;
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -1122,14 +1418,16 @@ public class EmeraldArmorItem implements CustomItem, ArmorBonus, ExtraDurability
     private final boolean reinforced;
     private final double reductionPercent;
     private final String id;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldArmorItem(Slot slot, boolean reinforced, FileConfiguration config) {
+    public EmeraldArmorItem(Slot slot, boolean reinforced, FileConfiguration config, ItemTextureRegistry textures) {
         this.slot = slot;
         this.reinforced = reinforced;
         this.id = (reinforced ? "REINFORCED_EMERALD_" : "EMERALD_") + slot.name();
         this.reductionPercent = reinforced
                 ? config.getDouble("armor.reinforced.reduction-per-piece", 0.08)
                 : config.getDouble("armor.emerald.reduction-per-piece", 0.05);
+        this.textures = textures;
     }
 
     @Override
@@ -1154,7 +1452,9 @@ public class EmeraldArmorItem implements CustomItem, ArmorBonus, ExtraDurability
 
     @Override
     public ItemStack build() {
-        ItemBuilder builder = new ItemBuilder(slot.material)
+        ItemTexture tex = textures.get(id).orElse(new ItemTexture(slot.material, (short) 0));
+        ItemBuilder builder = new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName(slot.displayName, reinforced)
                 .progression(reinforced)
                 .loreLine(reinforced ? "&7Protection superieure." : "&7Protection amelioree.");
@@ -1172,6 +1472,8 @@ import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ExtraDurability;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.WeaponBonus;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -1180,9 +1482,11 @@ public class EmeraldSword implements CustomItem, WeaponBonus, ExtraDurability {
 
     public static final String ID = "EMERALD_SWORD";
     private final double bonusDamage;
+    private final ItemTextureRegistry textures;
 
-    public EmeraldSword(FileConfiguration config) {
+    public EmeraldSword(FileConfiguration config, ItemTextureRegistry textures) {
         this.bonusDamage = config.getDouble("sword.emerald.bonus-damage", 3.0);
+        this.textures = textures;
     }
 
     @Override
@@ -1207,7 +1511,9 @@ public class EmeraldSword implements CustomItem, WeaponBonus, ExtraDurability {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_SWORD)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_SWORD, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Epee", false)
                 .progression(false)
                 .loreLine("&7Degats ameliores.")
@@ -1222,6 +1528,8 @@ add("src/main/java/fr/faction/customitems/items/weapons/ReinforcedEmeraldSword.j
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.api.ItemBuilder;
 import fr.faction.customitems.api.WeaponBonus;
+import fr.faction.customitems.config.ItemTexture;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -1230,9 +1538,11 @@ public class ReinforcedEmeraldSword implements CustomItem, WeaponBonus {
 
     public static final String ID = "REINFORCED_EMERALD_SWORD";
     private final double bonusDamage;
+    private final ItemTextureRegistry textures;
 
-    public ReinforcedEmeraldSword(FileConfiguration config) {
+    public ReinforcedEmeraldSword(FileConfiguration config, ItemTextureRegistry textures) {
         this.bonusDamage = config.getDouble("sword.reinforced.bonus-damage", 5.0);
+        this.textures = textures;
     }
 
     @Override
@@ -1252,7 +1562,9 @@ public class ReinforcedEmeraldSword implements CustomItem, WeaponBonus {
 
     @Override
     public ItemStack build() {
-        return new ItemBuilder(Material.DIAMOND_SWORD)
+        ItemTexture tex = textures.get(ID).orElse(new ItemTexture(Material.DIAMOND_SWORD, (short) 0));
+        return new ItemBuilder(tex.getMaterial())
+                .durability(tex.getDurability())
                 .emeraldName("Epee", true)
                 .progression(true)
                 .loreLine("&7Degats superieurs.")
@@ -1403,6 +1715,7 @@ import fr.faction.customitems.items.tools.ReinforcedEmeraldPickaxe;
 import fr.faction.customitems.items.tools.ReinforcedEmeraldShovel;
 import fr.faction.customitems.items.weapons.EmeraldSword;
 import fr.faction.customitems.items.weapons.ReinforcedEmeraldSword;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.Collection;
@@ -1427,28 +1740,28 @@ public class CustomItemRegistry {
 
     private final Map<String, CustomItem> items = new LinkedHashMap<>();
 
-    public CustomItemRegistry(FileConfiguration config) {
+    public CustomItemRegistry(FileConfiguration config, ItemTextureRegistry textures) {
         // Outils
-        register(new EmeraldHammer(config));
-        register(new ReinforcedEmeraldHammer(config));
-        register(new EmeraldHoe(config));
-        register(new ReinforcedEmeraldHoe(config));
-        register(new EmeraldPickaxe());
-        register(new ReinforcedEmeraldPickaxe());
-        register(new EmeraldShovel(config));
-        register(new ReinforcedEmeraldShovel(config));
-        register(new EmeraldAxe(config));
-        register(new ReinforcedEmeraldAxe());
+        register(new EmeraldHammer(config, textures));
+        register(new ReinforcedEmeraldHammer(config, textures));
+        register(new EmeraldHoe(config, textures));
+        register(new ReinforcedEmeraldHoe(config, textures));
+        register(new EmeraldPickaxe(textures));
+        register(new ReinforcedEmeraldPickaxe(textures));
+        register(new EmeraldShovel(config, textures));
+        register(new ReinforcedEmeraldShovel(config, textures));
+        register(new EmeraldAxe(config, textures));
+        register(new ReinforcedEmeraldAxe(textures));
 
         // Armures (4 emplacements x 2 tiers)
         for (EmeraldArmorItem.Slot slot : EmeraldArmorItem.Slot.values()) {
-            register(new EmeraldArmorItem(slot, false, config));
-            register(new EmeraldArmorItem(slot, true, config));
+            register(new EmeraldArmorItem(slot, false, config, textures));
+            register(new EmeraldArmorItem(slot, true, config, textures));
         }
 
         // Armes
-        register(new EmeraldSword(config));
-        register(new ReinforcedEmeraldSword(config));
+        register(new EmeraldSword(config, textures));
+        register(new ReinforcedEmeraldSword(config, textures));
 
         // Commerce
         register(new ReinforcedEmeraldBlock());
@@ -2563,6 +2876,7 @@ add("src/main/java/fr/faction/customitems/CustomItemsPlugin.java", """package fr
 
 import fr.faction.customitems.blocks.ProtectedBlockStore;
 import fr.faction.customitems.command.CustomItemCommand;
+import fr.faction.customitems.config.ItemTextureRegistry;
 import fr.faction.customitems.listener.BlockListener;
 import fr.faction.customitems.listener.CombatListener;
 import fr.faction.customitems.listener.CustomItemListener;
@@ -2598,7 +2912,10 @@ public class CustomItemsPlugin extends JavaPlugin {
                     + "les fonctionnalites Unbreakable/identification NBT seront degradees.");
         }
 
-        CustomItemRegistry registry = new CustomItemRegistry(getConfig());
+        ItemTextureRegistry textureRegistry = new ItemTextureRegistry(this);
+        textureRegistry.load();
+
+        CustomItemRegistry registry = new CustomItemRegistry(getConfig(), textureRegistry);
         this.customItemManager = new CustomItemManager(registry);
 
         this.protectedBlockStore = new ProtectedBlockStore(this);
