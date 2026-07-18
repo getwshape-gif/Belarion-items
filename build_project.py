@@ -57,8 +57,6 @@ add("pom.xml", """<project xmlns="http://maven.apache.org/POM/4.0.0"
         <!--
             Spigot API 1.8.8 (NMS revision v1_8_R3).
             Installer prealablement via BuildTools.jar (argument de revision 1.8.8).
-            Attention : ne pas utiliser de double tiret dans ce commentaire XML,
-            la sequence "--" est invalide a l'interieur d'un commentaire XML.
         -->
         <dependency>
             <groupId>org.spigotmc</groupId>
