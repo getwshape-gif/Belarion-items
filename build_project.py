@@ -1508,13 +1508,38 @@ import org.bukkit.event.block.BlockBreakEvent;
  */
 public final class ProtectionHook {
 
+    /**
+     * Garde de reentrance : indique qu'un BlockBreakEvent actuellement
+     * distribue est une SONDE emise par canBreak(), et non un vrai clic
+     * joueur. Sans ce garde, les listeners de ce plugin qui ecoutent aussi
+     * BlockBreakEvent (MiningListener, FarmingListener) reagiraient a leur
+     * propre sonde et en emettraient une nouvelle, provoquant une recursion
+     * infinie (StackOverflowError). Chaque listener doit verifier
+     * ProtectionHook.isProbing() en tout debut de methode et retourner
+     * immediatement si vrai.
+     */
+    private static final ThreadLocal<Boolean> PROBING = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
     private ProtectionHook() {
     }
 
+    public static boolean isProbing() {
+        return PROBING.get();
+    }
+
     public static boolean canBreak(Player player, Block block) {
-        BlockBreakEvent probe = new BlockBreakEvent(block, player);
-        Bukkit.getPluginManager().callEvent(probe);
-        return !probe.isCancelled();
+        if (PROBING.get()) {
+            // Securite supplementaire : ne jamais imbriquer une sonde dans une autre sonde.
+            return true;
+        }
+        PROBING.set(Boolean.TRUE);
+        try {
+            BlockBreakEvent probe = new BlockBreakEvent(block, player);
+            Bukkit.getPluginManager().callEvent(probe);
+            return !probe.isCancelled();
+        } finally {
+            PROBING.set(Boolean.FALSE);
+        }
     }
 }
 """)
@@ -1642,6 +1667,13 @@ public class MiningListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
+        if (ProtectionHook.isProbing()) {
+            // Cet event est une sonde emise par ProtectionHook.canBreak() pour un
+            // AUTRE bloc de la zone : on ne doit pas la retraiter comme un nouveau
+            // clic joueur, sinon boucle infinie (StackOverflowError).
+            return;
+        }
+
         Player player = event.getPlayer();
         ItemStack hand = player.getItemInHand();
         Optional<CustomItem> opt = manager.getCustomItem(hand);
@@ -1815,6 +1847,12 @@ public class FarmingListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCropBreak(BlockBreakEvent event) {
+        if (ProtectionHook.isProbing()) {
+            // Idem MiningListener : ignorer les sondes emises par ProtectionHook
+            // pour eviter une recursion infinie.
+            return;
+        }
+
         Block block = event.getBlock();
         Material cropType = block.getType();
         if (!CROP_TO_SEED.containsKey(cropType) || !isFullyGrown(block)) {
