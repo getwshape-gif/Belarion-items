@@ -1487,22 +1487,29 @@ import fr.faction.customitems.manager.CustomItemManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Gere le cycle de vie des blocs speciaux (enclume emeraude, table
@@ -1525,10 +1532,44 @@ public class BlockListener implements Listener {
     private final CustomItemManager manager;
     private final ProtectedBlockStore store;
 
+    /**
+     * L'API Bukkit 1.8 ne propose pas AnvilInventory#getLocation() (ajoute
+     * dans des versions ulterieures). On retient donc manuellement, pour
+     * chaque joueur, l'emplacement de la derniere enclume emeraude sur
+     * laquelle il a clique : puisqu'un joueur ne peut avoir qu'une seule
+     * interface d'enclume ouverte a la fois, cette association reste fiable
+     * entre l'ouverture (PlayerInteractEvent) et le clic sur le resultat
+     * (InventoryClickEvent).
+     */
+    private final Map<UUID, Location> openAnvilLocation = new HashMap<>();
+
     public BlockListener(Plugin plugin, CustomItemManager manager, ProtectedBlockStore store) {
         this.plugin = plugin;
         this.manager = manager;
         this.store = store;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onAnvilOpen(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) {
+            return;
+        }
+        Block block = event.getClickedBlock();
+        if (block.getType() != Material.ANVIL) {
+            return;
+        }
+        Location loc = block.getLocation();
+        if (!EmeraldAnvil.ID.equals(store.getCustomId(loc))) {
+            return;
+        }
+        openAnvilLocation.put(event.getPlayer().getUniqueId(), loc);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (event.getPlayer() instanceof Player) {
+            openAnvilLocation.remove(event.getPlayer().getUniqueId());
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -1554,9 +1595,14 @@ public class BlockListener implements Listener {
             return;
         }
 
+        // L'API Bukkit 1.8 ne propose pas BlockBreakEvent#setDropItems(boolean)
+        // (ajoute dans des versions ulterieures) pour supprimer uniquement le
+        // drop vanilla : on annule donc l'event et on gere nous-memes la
+        // destruction + le drop du bon item (avec son NBT d'identification).
+        event.setCancelled(true);
         Optional<CustomItem> opt = manager.getRegistry().get(id);
+        block.setType(Material.AIR);
         if (opt.isPresent()) {
-            event.setDropItems(false);
             Location dropAt = loc.clone().add(0.5, 0.5, 0.5);
             block.getWorld().dropItemNaturally(dropAt, opt.get().build());
         }
@@ -1589,8 +1635,10 @@ public class BlockListener implements Listener {
         if (event.getRawSlot() != 2) {
             return;
         }
-        AnvilInventory anvilInventory = (AnvilInventory) event.getInventory();
-        Location loc = anvilInventory.getLocation();
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Location loc = openAnvilLocation.get(event.getWhoClicked().getUniqueId());
         if (loc == null) {
             return;
         }
