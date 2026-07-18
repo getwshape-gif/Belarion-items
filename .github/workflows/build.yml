@@ -1,0 +1,48 @@
+name: Build CustomItems
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+
+      - name: Cache Spigot BuildTools output
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/spigotmc
+          key: spigot-1.8.8-r0.1-${{ runner.os }}
+
+      - name: Build Spigot 1.8.8 API (BuildTools) si pas deja en cache
+        run: |
+          if [ ! -d ~/.m2/repository/org/spigotmc/spigot-api/1.8.8-R0.1-SNAPSHOT ]; then
+            mkdir -p buildtools && cd buildtools
+            curl -sSL -o BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+            java -jar BuildTools.jar --rev 1.8.8 --compile-if-changed
+          else
+            echo "Spigot API 1.8.8 deja en cache, on saute BuildTools."
+          fi
+
+      - name: Generer les sources du projet
+        run: python3 build_project.py
+
+      - name: Compiler avec Maven
+        working-directory: CustomItems
+        run: mvn -B clean package
+
+      - name: Publier le jar comme artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CustomItems-jar
+          path: CustomItems/target/CustomItems.jar
