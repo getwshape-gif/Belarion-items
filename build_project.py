@@ -515,10 +515,16 @@ public class ItemBuilder {
     /** Ajoute la ligne de progression standard, ex: "&aEmeraude > &bDiamant". */
     public ItemBuilder progression(boolean reinforced) {
         if (reinforced) {
-            loreLine("&2Emeraude renforcee &7> &aEmeraude");
+            loreLine("&2Emeraude renforcee > &aEmeraude");
         } else {
-            loreLine("&aEmeraude &7> &bDiamant");
+            loreLine("&aEmeraude > &bDiamant");
         }
+        return this;
+    }
+
+    /** Ajoute la ligne "&aUnbreakable" imposee par le cahier des charges pour les items renforces. */
+    public ItemBuilder unbreakableTag() {
+        loreLine("&aUnbreakable");
         return this;
     }
 
@@ -635,11 +641,8 @@ public class EmeraldHammer implements CustomItem, MiningTool, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_PICKAXE)
                 .emeraldName("Hammer", false)
-                .loreLine("&7Permet de casser les blocs en zone 3x3.")
-                .loreLine("&7Ne casse que le meme type de bloc que celui vise.")
-                .loreLine("&7Respecte les claims et protections du serveur.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Mine les blocs en zone &a3x3&7.")
                 .customId(ID)
                 .build();
     }
@@ -683,12 +686,9 @@ public class ReinforcedEmeraldHammer implements CustomItem, MiningTool {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_PICKAXE)
                 .emeraldName("Hammer", true)
-                .loreLine("&7Permet de casser les blocs en zone 5x5.")
-                .loreLine("&7Plus rapide que le Hammer emeraude.")
-                .loreLine("&7Ne casse que le meme type de bloc que celui vise.")
-                .loreLine("&7Respecte les claims et protections du serveur.")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Mine les blocs en zone &a5x5&7.")
+                .unbreakableTag()
                 .unbreakable(true)
                 .customId(ID)
                 .build();
@@ -738,11 +738,8 @@ public class EmeraldHoe implements CustomItem, ReplantingHoe, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_HOE)
                 .emeraldName("Houe", false)
-                .loreLine("&7Casse et replante automatiquement les plantations.")
-                .loreLine("&7Necessite d'avoir les graines correspondantes.")
-                .loreLine("&7Compatible : ble, carottes, pommes de terre, betteraves.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Recolte et replante automatiquement.")
                 .customId(ID)
                 .build();
     }
@@ -786,11 +783,9 @@ public class ReinforcedEmeraldHoe implements CustomItem, ReplantingHoe {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_HOE)
                 .emeraldName("Houe", true)
-                .loreLine("&7Recolte une zone 3x3 de plantations.")
-                .loreLine("&7Replante automatiquement chaque emplacement.")
-                .loreLine("&7Necessite d'avoir les graines correspondantes.")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Recolte en zone &a3x3&7.")
+                .unbreakableTag()
                 .unbreakable(true)
                 .customId(ID)
                 .build();
@@ -834,10 +829,8 @@ public class EmeraldPickaxe implements CustomItem, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_PICKAXE)
                 .emeraldName("Pioche", false)
-                .loreLine("&7Plus rapide qu'une pioche en diamant.")
-                .loreLine("&7Plus grande duree de vie qu'une pioche en diamant.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Minage ameliore.")
                 .enchant(Enchantment.DIG_SPEED, 1)
                 .customId(ID)
                 .build();
@@ -884,14 +877,10 @@ public class ReinforcedEmeraldPickaxe implements CustomItem {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_PICKAXE)
                 .emeraldName("Pioche", true)
-                .loreLine("&7Plus rapide que la pioche emeraude.")
-                .loreLine("&7Incassable.")
-                .blankLine()
-                .loreLine("&7Obsidienne (Efficacite V) : &f~2 secondes")
-                .loreLine("&7Packed Ice (Eff. V + Haste II) : &fOne shot")
-                .loreLine("&7Mossy Cobblestone (Eff. V + Haste II) : &fOne shot")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Minage ultra rapide.")
+                .loreLine("&7Maitrise les blocs resistants.")
+                .unbreakableTag()
                 .enchant(Enchantment.DIG_SPEED, 2)
                 .unbreakable(true)
                 .customId(ID)
@@ -943,10 +932,8 @@ public class EmeraldShovel implements CustomItem, MiningTool, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_SPADE)
                 .emeraldName("Pelle", false)
-                .loreLine("&7Casse en zone 3x3 : terre, sable, gravier, argile.")
-                .loreLine("&7Ne casse que le meme type de bloc que celui vise.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Mine les blocs en zone &a3x3&7.")
                 .customId(ID)
                 .build();
     }
@@ -990,10 +977,9 @@ public class ReinforcedEmeraldShovel implements CustomItem, MiningTool {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_SPADE)
                 .emeraldName("Pelle", true)
-                .loreLine("&7Casse en zone 5x5 : terre, sable, gravier, argile.")
-                .loreLine("&7Incassable.")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Mine les blocs en zone &a5x5&7.")
+                .unbreakableTag()
                 .unbreakable(true)
                 .customId(ID)
                 .build();
@@ -1049,10 +1035,8 @@ public class EmeraldAxe implements CustomItem, MiningTool, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_AXE)
                 .emeraldName("Hache", false)
-                .loreLine("&7Casse le bois en colonne (1x3).")
-                .loreLine("&7Compatible avec tous les types de buches.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Coupe le bois en zone &a1x3&7.")
                 .customId(ID)
                 .build();
     }
@@ -1089,10 +1073,9 @@ public class ReinforcedEmeraldAxe implements CustomItem, TreeFeller {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_AXE)
                 .emeraldName("Hache", true)
-                .loreLine("&7Tree Capitator : coupe l'arbre entier en un coup.")
-                .loreLine("&7Plus rapide. Incassable.")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Coupe les arbres entierement.")
+                .unbreakableTag()
                 .unbreakable(true)
                 .customId(ID)
                 .build();
@@ -1173,14 +1156,12 @@ public class EmeraldArmorItem implements CustomItem, ArmorBonus, ExtraDurability
     public ItemStack build() {
         ItemBuilder builder = new ItemBuilder(slot.material)
                 .emeraldName(slot.displayName, reinforced)
-                .loreLine("&7Protection superieure au diamant.")
-                .loreLine(reinforced ? "&7Incassable." : "&7Plus grande duree de vie que le diamant.")
-                .blankLine()
                 .progression(reinforced)
-                .customId(id);
+                .loreLine(reinforced ? "&7Protection superieure." : "&7Protection amelioree.");
         if (reinforced) {
-            builder.unbreakable(true);
+            builder.unbreakableTag().unbreakable(true);
         }
+        builder.customId(id);
         return builder.build();
     }
 }
@@ -1228,9 +1209,8 @@ public class EmeraldSword implements CustomItem, WeaponBonus, ExtraDurability {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_SWORD)
                 .emeraldName("Epee", false)
-                .loreLine("&7Inflige plus de degats qu'une epee en diamant.")
-                .blankLine()
                 .progression(false)
+                .loreLine("&7Degats ameliores.")
                 .customId(ID)
                 .build();
     }
@@ -1274,10 +1254,9 @@ public class ReinforcedEmeraldSword implements CustomItem, WeaponBonus {
     public ItemStack build() {
         return new ItemBuilder(Material.DIAMOND_SWORD)
                 .emeraldName("Epee", true)
-                .loreLine("&7Inflige plus de degats que l'epee emeraude.")
-                .loreLine("&7Incassable.")
-                .blankLine()
                 .progression(true)
+                .loreLine("&7Degats superieurs.")
+                .unbreakableTag()
                 .unbreakable(true)
                 .customId(ID)
                 .build();
@@ -1316,18 +1295,101 @@ public class ReinforcedEmeraldBlock implements CustomItem {
     public ItemStack build() {
         return new ItemBuilder(Material.EMERALD_BLOCK)
                 .emeraldName("Bloc d'emeraude renforce", true)
-                .loreLine("&7Objet de commerce.")
-                .loreLine("&7Aucune capacite speciale.")
-                .blankLine()
+                .progression(true)
+                .loreLine("&7Objet de valeur commerciale.")
                 .customId(ID)
                 .build();
     }
 }
 """)
+add("src/main/java/fr/faction/customitems/items/misc/EmeraldAnvil.java", """package fr.faction.customitems.items.misc;
+
+import fr.faction.customitems.api.CustomItem;
+import fr.faction.customitems.api.ItemBuilder;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
+/**
+ * Enclume emeraude : resiste aux explosions (TNT, Creeper) mais reste
+ * cassable normalement a la pioche et recuperable. Ne devient jamais
+ * endommagee (le niveau de degat de l'enclume est reinitialise
+ * automatiquement par BlockListener a chaque utilisation).
+ *
+ * Important (cahier des charges) : "Incassable" pour ce bloc signifie
+ * uniquement la resistance aux explosions, PAS un tag NBT Unbreakable
+ * (qui n'a aucun sens pour un bloc pose). isUnbreakable() renvoie donc
+ * false ici : c'est BlockListener qui gere la resistance aux explosions
+ * et la reinitialisation des degats via le ProtectedBlockStore.
+ */
+public class EmeraldAnvil implements CustomItem {
+
+    public static final String ID = "EMERALD_ANVIL";
+
+    @Override
+    public String getId() {
+        return ID;
+    }
+
+    @Override
+    public boolean isUnbreakable() {
+        return false;
+    }
+
+    @Override
+    public ItemStack build() {
+        return new ItemBuilder(Material.ANVIL)
+                .emeraldName("Enclume", false)
+                .progression(false)
+                .loreLine("&7Resiste aux explosions.")
+                .customId(ID)
+                .build();
+    }
+}
+""")
+
+add("src/main/java/fr/faction/customitems/items/misc/EmeraldEnchantingTable.java", """package fr.faction.customitems.items.misc;
+
+import fr.faction.customitems.api.CustomItem;
+import fr.faction.customitems.api.ItemBuilder;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
+/**
+ * Table d'enchantement emeraude : resiste aux explosions, cassable a la
+ * pioche, recuperable. Voir EmeraldAnvil pour la note sur "incassable".
+ */
+public class EmeraldEnchantingTable implements CustomItem {
+
+    public static final String ID = "EMERALD_ENCHANTING_TABLE";
+
+    @Override
+    public String getId() {
+        return ID;
+    }
+
+    @Override
+    public boolean isUnbreakable() {
+        return false;
+    }
+
+    @Override
+    public ItemStack build() {
+        return new ItemBuilder(Material.ENCHANTMENT_TABLE)
+                .emeraldName("Table d'enchantement", false)
+                .progression(false)
+                .loreLine("&7Resiste aux explosions.")
+                .customId(ID)
+                .build();
+    }
+}
+""")
+
 add("src/main/java/fr/faction/customitems/registry/CustomItemRegistry.java", """package fr.faction.customitems.registry;
 
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.items.armor.EmeraldArmorItem;
+import fr.faction.customitems.items.misc.EmeraldAnvil;
+import fr.faction.customitems.items.misc.EmeraldEnchantingTable;
 import fr.faction.customitems.items.misc.ReinforcedEmeraldBlock;
 import fr.faction.customitems.items.tools.EmeraldAxe;
 import fr.faction.customitems.items.tools.EmeraldHammer;
@@ -1390,6 +1452,10 @@ public class CustomItemRegistry {
 
         // Commerce
         register(new ReinforcedEmeraldBlock());
+
+        // Blocs speciaux resistants aux explosions
+        register(new EmeraldAnvil());
+        register(new EmeraldEnchantingTable());
     }
 
     private void register(CustomItem item) {
@@ -1407,6 +1473,144 @@ public class CustomItemRegistry {
 
     public Set<String> getIds() {
         return items.keySet();
+    }
+}
+""")
+
+add("src/main/java/fr/faction/customitems/listener/BlockListener.java", """package fr.faction.customitems.listener;
+
+import fr.faction.customitems.api.CustomItem;
+import fr.faction.customitems.blocks.ProtectedBlockStore;
+import fr.faction.customitems.items.misc.EmeraldAnvil;
+import fr.faction.customitems.items.misc.EmeraldEnchantingTable;
+import fr.faction.customitems.manager.CustomItemManager;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Gere le cycle de vie des blocs speciaux (enclume emeraude, table
+ * d'enchantement emeraude) : enregistrement a la pose, drop du bon item a
+ * la casse, immunite aux explosions, et reinitialisation des degats de
+ * l'enclume pour qu'elle ne devienne jamais endommagee.
+ *
+ * Rappel du cahier des charges : "Incassable" pour ces deux blocs signifie
+ * UNIQUEMENT la resistance aux explosions. Ils restent cassables normalement
+ * a la pioche (comportement par defaut, non modifie ici) et recuperables
+ * (on drop la version custom identifiee en NBT, pas le bloc vanilla brut).
+ */
+public class BlockListener implements Listener {
+
+    private static final Set<String> PROTECTED_IDS = new HashSet<>(Arrays.asList(
+            EmeraldAnvil.ID, EmeraldEnchantingTable.ID
+    ));
+
+    private final Plugin plugin;
+    private final CustomItemManager manager;
+    private final ProtectedBlockStore store;
+
+    public BlockListener(Plugin plugin, CustomItemManager manager, ProtectedBlockStore store) {
+        this.plugin = plugin;
+        this.manager = manager;
+        this.store = store;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlace(BlockPlaceEvent event) {
+        ItemStack placed = event.getItemInHand();
+        Optional<CustomItem> opt = manager.getCustomItem(placed);
+        if (!opt.isPresent()) {
+            return;
+        }
+        String id = opt.get().getId();
+        if (!PROTECTED_IDS.contains(id)) {
+            return;
+        }
+        store.register(event.getBlock().getLocation(), id);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        Location loc = block.getLocation();
+        String id = store.getCustomId(loc);
+        if (id == null) {
+            return;
+        }
+
+        Optional<CustomItem> opt = manager.getRegistry().get(id);
+        if (opt.isPresent()) {
+            event.setDropItems(false);
+            Location dropAt = loc.clone().add(0.5, 0.5, 0.5);
+            block.getWorld().dropItemNaturally(dropAt, opt.get().build());
+        }
+        store.unregister(loc);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        event.blockList().removeIf(b -> store.isProtected(b.getLocation()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockExplode(BlockExplodeEvent event) {
+        event.blockList().removeIf(b -> store.isProtected(b.getLocation()));
+    }
+
+    /**
+     * En 1.8, l'enclume a une chance (environ 12%) d'augmenter son niveau de
+     * degat a chaque fois qu'un joueur retire le resultat d'une reparation
+     * (slot 2 de l'AnvilInventory), geree en interne par le NMS. On ne peut
+     * pas empecher ce calcul, mais on peut reinitialiser le data value du
+     * bloc juste apres, ce qui revient a annuler l'usure pour nos enclumes
+     * emeraude.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onAnvilResultTaken(InventoryClickEvent event) {
+        if (!(event.getInventory() instanceof AnvilInventory)) {
+            return;
+        }
+        if (event.getRawSlot() != 2) {
+            return;
+        }
+        AnvilInventory anvilInventory = (AnvilInventory) event.getInventory();
+        Location loc = anvilInventory.getLocation();
+        if (loc == null) {
+            return;
+        }
+        String id = store.getCustomId(loc);
+        if (!EmeraldAnvil.ID.equals(id)) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTask(plugin, () -> resetAnvilDamage(loc));
+    }
+
+    private void resetAnvilDamage(Location loc) {
+        Block block = loc.getBlock();
+        if (block.getType() != Material.ANVIL) {
+            return;
+        }
+        byte data = block.getData();
+        byte facingOnly = (byte) (data % 4);
+        if (data != facingOnly) {
+            block.setData(facingOnly, true);
+        }
     }
 }
 """)
@@ -1478,6 +1682,92 @@ public class CustomItemManager {
     }
 }
 """)
+add("src/main/java/fr/faction/customitems/blocks/ProtectedBlockStore.java", """package fr.faction.customitems.blocks;
+
+import org.bukkit.Location;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+
+/**
+ * Registre persistant des blocs speciaux poses par les joueurs (enclume
+ * emeraude, table d'enchantement emeraude).
+ *
+ * Pourquoi un registre a part et pas du NBT sur le bloc ? En 1.8, Material.ANVIL
+ * et Material.ENCHANTMENT_TABLE sont de simples blocs (pas des TileEntity),
+ * ils ne peuvent donc pas porter de tag NBT personnalise comme un ItemStack.
+ * On identifie donc "ce bloc precis est un bloc special du plugin" par ses
+ * coordonnees, stockees dans ce fichier YAML afin de survivre aux redemarrages
+ * du serveur.
+ */
+public class ProtectedBlockStore {
+
+    private final Plugin plugin;
+    private final File file;
+    private final Map<String, String> locationToId = new HashMap<>();
+
+    public ProtectedBlockStore(Plugin plugin) {
+        this.plugin = plugin;
+        this.file = new File(plugin.getDataFolder(), "protected_blocks.yml");
+    }
+
+    public void load() {
+        locationToId.clear();
+        if (!file.exists()) {
+            return;
+        }
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        for (String key : config.getKeys(false)) {
+            String id = config.getString(key);
+            if (id != null) {
+                locationToId.put(key, id);
+            }
+        }
+    }
+
+    public void save() {
+        FileConfiguration config = new YamlConfiguration();
+        for (Map.Entry<String, String> entry : locationToId.entrySet()) {
+            config.set(entry.getKey(), entry.getValue());
+        }
+        try {
+            config.save(file);
+        } catch (IOException ex) {
+            plugin.getLogger().log(Level.WARNING, "Impossible de sauvegarder protected_blocks.yml", ex);
+        }
+    }
+
+    private String key(Location location) {
+        return location.getWorld().getName() + ";" + location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ();
+    }
+
+    public void register(Location location, String customId) {
+        locationToId.put(key(location), customId);
+        save();
+    }
+
+    public void unregister(Location location) {
+        if (locationToId.remove(key(location)) != null) {
+            save();
+        }
+    }
+
+    public boolean isProtected(Location location) {
+        return locationToId.containsKey(key(location));
+    }
+
+    public String getCustomId(Location location) {
+        return locationToId.get(key(location));
+    }
+}
+""")
+
 add("src/main/java/fr/faction/customitems/hook/ProtectionHook.java", """package fr.faction.customitems.hook;
 
 import org.bukkit.Bukkit;
@@ -2223,7 +2513,9 @@ public class CustomItemCommand implements CommandExecutor, TabCompleter {
 """)
 add("src/main/java/fr/faction/customitems/CustomItemsPlugin.java", """package fr.faction.customitems;
 
+import fr.faction.customitems.blocks.ProtectedBlockStore;
 import fr.faction.customitems.command.CustomItemCommand;
+import fr.faction.customitems.listener.BlockListener;
 import fr.faction.customitems.listener.CombatListener;
 import fr.faction.customitems.listener.CustomItemListener;
 import fr.faction.customitems.listener.FarmingListener;
@@ -2247,6 +2539,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class CustomItemsPlugin extends JavaPlugin {
 
     private CustomItemManager customItemManager;
+    private ProtectedBlockStore protectedBlockStore;
 
     @Override
     public void onEnable() {
@@ -2260,11 +2553,15 @@ public class CustomItemsPlugin extends JavaPlugin {
         CustomItemRegistry registry = new CustomItemRegistry(getConfig());
         this.customItemManager = new CustomItemManager(registry);
 
+        this.protectedBlockStore = new ProtectedBlockStore(this);
+        this.protectedBlockStore.load();
+
         getServer().getPluginManager().registerEvents(new MiningListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new FarmingListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new CombatListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new CustomItemListener(customItemManager), this);
+        getServer().getPluginManager().registerEvents(new BlockListener(this, customItemManager, protectedBlockStore), this);
 
         CustomItemCommand commandExecutor = new CustomItemCommand(customItemManager);
         PluginCommand citem = getCommand("citem");
@@ -2278,6 +2575,9 @@ public class CustomItemsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (protectedBlockStore != null) {
+            protectedBlockStore.save();
+        }
         getLogger().info("CustomItems desactive.");
     }
 
@@ -2318,13 +2618,21 @@ dossier `plugins/` de votre serveur Spigot 1.8.x.
 - `registry/` - CustomItemRegistry : liste centrale de tous les items. C'est
   le SEUL endroit a modifier pour ajouter un nouvel item.
 - `manager/` - CustomItemManager : identification et distribution des items.
-- `items/tools|armor|weapons|misc/` - Implementations concretes des 21 items.
+- `items/tools|armor|weapons|misc/` - Implementations concretes des 23 items
+  (21 items portables + enclume et table d'enchantement emeraude).
+- `blocks/ProtectedBlockStore` - Registre persistant (YAML) des blocs speciaux
+  poses (enclume/table emeraude), necessaire car un bloc simple n'a pas de NBT
+  en 1.8.
 - `listener/` - MiningListener (hammer/pelle/hache/tree capitator),
   FarmingListener (houes), CombatListener (epees/armures), ItemDurabilityListener
-  (Unbreakable + duree de vie), CustomItemListener (anti-exploits generiques).
+  (Unbreakable + duree de vie), CustomItemListener (anti-exploits generiques),
+  BlockListener (pose/casse/explosion des blocs speciaux, reset des degats
+  de l'enclume).
 - `hook/ProtectionHook` - Verification generique des protections (Factions,
   WorldGuard, GriefPrevention, etc.) via une sonde BlockBreakEvent, sans
-  dependance de compilation a un plugin de protection precis.
+  dependance de compilation a un plugin de protection precis. Un garde de
+  reentrance (ProtectionHook.isProbing()) empeche les listeners du plugin de
+  reagir a leurs propres sondes (evite une recursion infinie).
 - `command/CustomItemCommand` - /citem give|list|id.
 
 ## Ajouter un nouvel item
