@@ -1614,94 +1614,10 @@ public class ReinforcedEmeraldBlock implements CustomItem {
     }
 }
 """)
-add("src/main/java/fr/faction/customitems/items/misc/EmeraldAnvil.java", """package fr.faction.customitems.items.misc;
-
-import fr.faction.customitems.api.CustomItem;
-import fr.faction.customitems.api.ItemBuilder;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-
-/**
- * Enclume emeraude : resiste aux explosions (TNT, Creeper) mais reste
- * cassable normalement a la pioche et recuperable. Ne devient jamais
- * endommagee (le niveau de degat de l'enclume est reinitialise
- * automatiquement par BlockListener a chaque utilisation).
- *
- * Important (cahier des charges) : "Incassable" pour ce bloc signifie
- * uniquement la resistance aux explosions, PAS un tag NBT Unbreakable
- * (qui n'a aucun sens pour un bloc pose). isUnbreakable() renvoie donc
- * false ici : c'est BlockListener qui gere la resistance aux explosions
- * et la reinitialisation des degats via le ProtectedBlockStore.
- */
-public class EmeraldAnvil implements CustomItem {
-
-    public static final String ID = "EMERALD_ANVIL";
-
-    @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public boolean isUnbreakable() {
-        return false;
-    }
-
-    @Override
-    public ItemStack build() {
-        return new ItemBuilder(Material.ANVIL)
-                .emeraldName("Enclume", false)
-                .progression(false)
-                .loreLine("&7Resiste aux explosions.")
-                .customId(ID)
-                .build();
-    }
-}
-""")
-
-add("src/main/java/fr/faction/customitems/items/misc/EmeraldEnchantingTable.java", """package fr.faction.customitems.items.misc;
-
-import fr.faction.customitems.api.CustomItem;
-import fr.faction.customitems.api.ItemBuilder;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-
-/**
- * Table d'enchantement emeraude : resiste aux explosions, cassable a la
- * pioche, recuperable. Voir EmeraldAnvil pour la note sur "incassable".
- */
-public class EmeraldEnchantingTable implements CustomItem {
-
-    public static final String ID = "EMERALD_ENCHANTING_TABLE";
-
-    @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public boolean isUnbreakable() {
-        return false;
-    }
-
-    @Override
-    public ItemStack build() {
-        return new ItemBuilder(Material.ENCHANTMENT_TABLE)
-                .emeraldName("Table d'enchantement", false)
-                .progression(false)
-                .loreLine("&7Resiste aux explosions.")
-                .customId(ID)
-                .build();
-    }
-}
-""")
-
 add("src/main/java/fr/faction/customitems/registry/CustomItemRegistry.java", """package fr.faction.customitems.registry;
 
 import fr.faction.customitems.api.CustomItem;
 import fr.faction.customitems.items.armor.EmeraldArmorItem;
-import fr.faction.customitems.items.misc.EmeraldAnvil;
-import fr.faction.customitems.items.misc.EmeraldEnchantingTable;
 import fr.faction.customitems.items.misc.ReinforcedEmeraldBlock;
 import fr.faction.customitems.items.tools.EmeraldAxe;
 import fr.faction.customitems.items.tools.EmeraldHammer;
@@ -1766,9 +1682,9 @@ public class CustomItemRegistry {
         // Commerce
         register(new ReinforcedEmeraldBlock());
 
-        // Blocs speciaux resistants aux explosions
-        register(new EmeraldAnvil());
-        register(new EmeraldEnchantingTable());
+        // Note : la table d'enchantement emeraude, l'enclume emeraude et
+        // leurs GUIs sont geres par le plugin separe Belarion-Enchants et ne
+        // doivent PAS etre recrees ici (cf. cahier de separation des plugins).
     }
 
     private void register(CustomItem item) {
@@ -1786,192 +1702,6 @@ public class CustomItemRegistry {
 
     public Set<String> getIds() {
         return items.keySet();
-    }
-}
-""")
-
-add("src/main/java/fr/faction/customitems/listener/BlockListener.java", """package fr.faction.customitems.listener;
-
-import fr.faction.customitems.api.CustomItem;
-import fr.faction.customitems.blocks.ProtectedBlockStore;
-import fr.faction.customitems.items.misc.EmeraldAnvil;
-import fr.faction.customitems.items.misc.EmeraldEnchantingTable;
-import fr.faction.customitems.manager.CustomItemManager;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.AnvilInventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-/**
- * Gere le cycle de vie des blocs speciaux (enclume emeraude, table
- * d'enchantement emeraude) : enregistrement a la pose, drop du bon item a
- * la casse, immunite aux explosions, et reinitialisation des degats de
- * l'enclume pour qu'elle ne devienne jamais endommagee.
- *
- * Rappel du cahier des charges : "Incassable" pour ces deux blocs signifie
- * UNIQUEMENT la resistance aux explosions. Ils restent cassables normalement
- * a la pioche (comportement par defaut, non modifie ici) et recuperables
- * (on drop la version custom identifiee en NBT, pas le bloc vanilla brut).
- */
-public class BlockListener implements Listener {
-
-    private static final Set<String> PROTECTED_IDS = new HashSet<>(Arrays.asList(
-            EmeraldAnvil.ID, EmeraldEnchantingTable.ID
-    ));
-
-    private final Plugin plugin;
-    private final CustomItemManager manager;
-    private final ProtectedBlockStore store;
-
-    /**
-     * L'API Bukkit 1.8 ne propose pas AnvilInventory#getLocation() (ajoute
-     * dans des versions ulterieures). On retient donc manuellement, pour
-     * chaque joueur, l'emplacement de la derniere enclume emeraude sur
-     * laquelle il a clique : puisqu'un joueur ne peut avoir qu'une seule
-     * interface d'enclume ouverte a la fois, cette association reste fiable
-     * entre l'ouverture (PlayerInteractEvent) et le clic sur le resultat
-     * (InventoryClickEvent).
-     */
-    private final Map<UUID, Location> openAnvilLocation = new HashMap<>();
-
-    public BlockListener(Plugin plugin, CustomItemManager manager, ProtectedBlockStore store) {
-        this.plugin = plugin;
-        this.manager = manager;
-        this.store = store;
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAnvilOpen(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) {
-            return;
-        }
-        Block block = event.getClickedBlock();
-        if (block.getType() != Material.ANVIL) {
-            return;
-        }
-        Location loc = block.getLocation();
-        if (!EmeraldAnvil.ID.equals(store.getCustomId(loc))) {
-            return;
-        }
-        openAnvilLocation.put(event.getPlayer().getUniqueId(), loc);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (event.getPlayer() instanceof Player) {
-            openAnvilLocation.remove(event.getPlayer().getUniqueId());
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onPlace(BlockPlaceEvent event) {
-        ItemStack placed = event.getItemInHand();
-        Optional<CustomItem> opt = manager.getCustomItem(placed);
-        if (!opt.isPresent()) {
-            return;
-        }
-        String id = opt.get().getId();
-        if (!PROTECTED_IDS.contains(id)) {
-            return;
-        }
-        store.register(event.getBlock().getLocation(), id);
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBreak(BlockBreakEvent event) {
-        Block block = event.getBlock();
-        Location loc = block.getLocation();
-        String id = store.getCustomId(loc);
-        if (id == null) {
-            return;
-        }
-
-        // L'API Bukkit 1.8 ne propose pas BlockBreakEvent#setDropItems(boolean)
-        // (ajoute dans des versions ulterieures) pour supprimer uniquement le
-        // drop vanilla : on annule donc l'event et on gere nous-memes la
-        // destruction + le drop du bon item (avec son NBT d'identification).
-        event.setCancelled(true);
-        Optional<CustomItem> opt = manager.getRegistry().get(id);
-        block.setType(Material.AIR);
-        if (opt.isPresent()) {
-            Location dropAt = loc.clone().add(0.5, 0.5, 0.5);
-            block.getWorld().dropItemNaturally(dropAt, opt.get().build());
-        }
-        store.unregister(loc);
-    }
-
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onEntityExplode(EntityExplodeEvent event) {
-        event.blockList().removeIf(b -> store.isProtected(b.getLocation()));
-    }
-
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onBlockExplode(BlockExplodeEvent event) {
-        event.blockList().removeIf(b -> store.isProtected(b.getLocation()));
-    }
-
-    /**
-     * En 1.8, l'enclume a une chance (environ 12%) d'augmenter son niveau de
-     * degat a chaque fois qu'un joueur retire le resultat d'une reparation
-     * (slot 2 de l'AnvilInventory), geree en interne par le NMS. On ne peut
-     * pas empecher ce calcul, mais on peut reinitialiser le data value du
-     * bloc juste apres, ce qui revient a annuler l'usure pour nos enclumes
-     * emeraude.
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAnvilResultTaken(InventoryClickEvent event) {
-        if (!(event.getInventory() instanceof AnvilInventory)) {
-            return;
-        }
-        if (event.getRawSlot() != 2) {
-            return;
-        }
-        if (!(event.getWhoClicked() instanceof Player)) {
-            return;
-        }
-        Location loc = openAnvilLocation.get(event.getWhoClicked().getUniqueId());
-        if (loc == null) {
-            return;
-        }
-        String id = store.getCustomId(loc);
-        if (!EmeraldAnvil.ID.equals(id)) {
-            return;
-        }
-        plugin.getServer().getScheduler().runTask(plugin, () -> resetAnvilDamage(loc));
-    }
-
-    private void resetAnvilDamage(Location loc) {
-        Block block = loc.getBlock();
-        if (block.getType() != Material.ANVIL) {
-            return;
-        }
-        byte data = block.getData();
-        byte facingOnly = (byte) (data % 4);
-        if (data != facingOnly) {
-            block.setData(facingOnly, true);
-        }
     }
 }
 """)
@@ -2043,92 +1773,6 @@ public class CustomItemManager {
     }
 }
 """)
-add("src/main/java/fr/faction/customitems/blocks/ProtectedBlockStore.java", """package fr.faction.customitems.blocks;
-
-import org.bukkit.Location;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
-
-/**
- * Registre persistant des blocs speciaux poses par les joueurs (enclume
- * emeraude, table d'enchantement emeraude).
- *
- * Pourquoi un registre a part et pas du NBT sur le bloc ? En 1.8, Material.ANVIL
- * et Material.ENCHANTMENT_TABLE sont de simples blocs (pas des TileEntity),
- * ils ne peuvent donc pas porter de tag NBT personnalise comme un ItemStack.
- * On identifie donc "ce bloc precis est un bloc special du plugin" par ses
- * coordonnees, stockees dans ce fichier YAML afin de survivre aux redemarrages
- * du serveur.
- */
-public class ProtectedBlockStore {
-
-    private final Plugin plugin;
-    private final File file;
-    private final Map<String, String> locationToId = new HashMap<>();
-
-    public ProtectedBlockStore(Plugin plugin) {
-        this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "protected_blocks.yml");
-    }
-
-    public void load() {
-        locationToId.clear();
-        if (!file.exists()) {
-            return;
-        }
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        for (String key : config.getKeys(false)) {
-            String id = config.getString(key);
-            if (id != null) {
-                locationToId.put(key, id);
-            }
-        }
-    }
-
-    public void save() {
-        FileConfiguration config = new YamlConfiguration();
-        for (Map.Entry<String, String> entry : locationToId.entrySet()) {
-            config.set(entry.getKey(), entry.getValue());
-        }
-        try {
-            config.save(file);
-        } catch (IOException ex) {
-            plugin.getLogger().log(Level.WARNING, "Impossible de sauvegarder protected_blocks.yml", ex);
-        }
-    }
-
-    private String key(Location location) {
-        return location.getWorld().getName() + ";" + location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ();
-    }
-
-    public void register(Location location, String customId) {
-        locationToId.put(key(location), customId);
-        save();
-    }
-
-    public void unregister(Location location) {
-        if (locationToId.remove(key(location)) != null) {
-            save();
-        }
-    }
-
-    public boolean isProtected(Location location) {
-        return locationToId.containsKey(key(location));
-    }
-
-    public String getCustomId(Location location) {
-        return locationToId.get(key(location));
-    }
-}
-""")
-
 add("src/main/java/fr/faction/customitems/hook/ProtectionHook.java", """package fr.faction.customitems.hook;
 
 import org.bukkit.Bukkit;
@@ -2874,10 +2518,8 @@ public class CustomItemCommand implements CommandExecutor, TabCompleter {
 """)
 add("src/main/java/fr/faction/customitems/CustomItemsPlugin.java", """package fr.faction.customitems;
 
-import fr.faction.customitems.blocks.ProtectedBlockStore;
 import fr.faction.customitems.command.CustomItemCommand;
 import fr.faction.customitems.config.ItemTextureRegistry;
-import fr.faction.customitems.listener.BlockListener;
 import fr.faction.customitems.listener.CombatListener;
 import fr.faction.customitems.listener.CustomItemListener;
 import fr.faction.customitems.listener.FarmingListener;
@@ -2901,7 +2543,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class CustomItemsPlugin extends JavaPlugin {
 
     private CustomItemManager customItemManager;
-    private ProtectedBlockStore protectedBlockStore;
 
     @Override
     public void onEnable() {
@@ -2918,15 +2559,11 @@ public class CustomItemsPlugin extends JavaPlugin {
         CustomItemRegistry registry = new CustomItemRegistry(getConfig(), textureRegistry);
         this.customItemManager = new CustomItemManager(registry);
 
-        this.protectedBlockStore = new ProtectedBlockStore(this);
-        this.protectedBlockStore.load();
-
         getServer().getPluginManager().registerEvents(new MiningListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new FarmingListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new CombatListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(customItemManager), this);
         getServer().getPluginManager().registerEvents(new CustomItemListener(customItemManager), this);
-        getServer().getPluginManager().registerEvents(new BlockListener(this, customItemManager, protectedBlockStore), this);
 
         CustomItemCommand commandExecutor = new CustomItemCommand(customItemManager);
         PluginCommand citem = getCommand("citem");
@@ -2935,14 +2572,12 @@ public class CustomItemsPlugin extends JavaPlugin {
             citem.setTabCompleter(commandExecutor);
         }
 
-        getLogger().info("CustomItems active - " + registry.getIds().size() + " items enregistres.");
+        getLogger().info("CustomItems active - " + registry.getIds().size() + " items enregistres. "
+                + "(Table d'enchantement/enclume emeraude gerees par Belarion-Enchants.)");
     }
 
     @Override
     public void onDisable() {
-        if (protectedBlockStore != null) {
-            protectedBlockStore.save();
-        }
         getLogger().info("CustomItems desactive.");
     }
 
@@ -2956,6 +2591,12 @@ add("README.md", """# CustomItems - Systeme de custom items tier Emeraude (Spigo
 Plugin complet pour serveur PvP Faction Spigot 1.8.x ajoutant une
 progression d'equipements superieure au diamant (tier Emeraude, puis
 Emeraude renforcee).
+
+**Separation des plugins :** ce plugin gere UNIQUEMENT les 21 items
+portables (outils/armes/armures emeraude + bloc d'emeraude renforce). La
+table d'enchantement emeraude, l'enclume emeraude et leurs GUIs sont geres
+par le plugin separe **Belarion-Enchants** et ne sont pas recrees ici, afin
+d'eviter tout doublon d'ID ou conflit entre les deux plugins.
 
 ## Compilation
 
@@ -2983,16 +2624,15 @@ dossier `plugins/` de votre serveur Spigot 1.8.x.
 - `registry/` - CustomItemRegistry : liste centrale de tous les items. C'est
   le SEUL endroit a modifier pour ajouter un nouvel item.
 - `manager/` - CustomItemManager : identification et distribution des items.
-- `items/tools|armor|weapons|misc/` - Implementations concretes des 23 items
-  (21 items portables + enclume et table d'enchantement emeraude).
-- `blocks/ProtectedBlockStore` - Registre persistant (YAML) des blocs speciaux
-  poses (enclume/table emeraude), necessaire car un bloc simple n'a pas de NBT
-  en 1.8.
+- `config/ItemTextureRegistry` - Charge `CustomItems.yml` (Material +
+  Damage Value par item) pour l'affichage resource pack 1.8.
+- `items/tools|armor|weapons|misc/` - Implementations concretes des 21 items
+  portables (outils, armes, armures, bloc d'emeraude renforce). N'inclut PAS
+  l'enclume ni la table d'enchantement emeraude : ces deux blocs et leurs GUIs
+  sont geres par le plugin separe Belarion-Enchants.
 - `listener/` - MiningListener (hammer/pelle/hache/tree capitator),
   FarmingListener (houes), CombatListener (epees/armures), ItemDurabilityListener
-  (Unbreakable + duree de vie), CustomItemListener (anti-exploits generiques),
-  BlockListener (pose/casse/explosion des blocs speciaux, reset des degats
-  de l'enclume).
+  (Unbreakable + duree de vie), CustomItemListener (anti-exploits generiques).
 - `hook/ProtectionHook` - Verification generique des protections (Factions,
   WorldGuard, GriefPrevention, etc.) via une sonde BlockBreakEvent, sans
   dependance de compilation a un plugin de protection precis. Un garde de
